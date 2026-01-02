@@ -1,11 +1,9 @@
-#include "Common.h"     // Must be first! Defines SOCKET and HttpRequest
-#include "Parser.h"     // Defines recvHeaders, parseHttpRequest
-#include "Filter.h"     // Defines isBlocked
-#include "Logger.h"     // Defines logProxy
-#include "ProxyCore.h"  // Your core header
+#include "../include/ProxyCore.h"
+#include "../include/Parser.h"
+#include "../include/Filter.h"
+#include "../include/Logger.h"
 #include <iostream>
 #include <mutex>
-#include <ws2tcpip.h>   // Added for inet_ntop and addrinfo
 
 std::mutex coutMtx; 
 
@@ -19,19 +17,19 @@ int sendAll(SOCKET s, const char* buf, int len) {
     return totalSent;
 }
 
-// CHANGED: Accept port as std::string to match HttpRequest.port
 SOCKET connectToRemote(const std::string& host, const std::string& port) {
     addrinfo hints{}, *res;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     
-    // No more std::to_string needed
     if (getaddrinfo(host.c_str(), port.c_str(), &hints, &res) != 0) return INVALID_SOCKET;
     
     SOCKET s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (s != INVALID_SOCKET && connect(s, res->ai_addr, (int)res->ai_addrlen) == SOCKET_ERROR) {
-        closesocket(s);
-        s = INVALID_SOCKET;
+    if (s != INVALID_SOCKET) {
+        if (connect(s, res->ai_addr, (int)res->ai_addrlen) == SOCKET_ERROR) {
+            closesocket(s);
+            s = INVALID_SOCKET;
+        }
     }
     freeaddrinfo(res);
     return s;
@@ -54,9 +52,7 @@ void handleClient(SOCKET clientSocket) {
     }
 
     std::string rawData;
-    // recvHeaders is now FOUND because of #include "Parser.h"
-    int headerBytes = recvHeaders(clientSocket, rawData);
-    if (headerBytes <= 0) {
+    if (recvHeaders(clientSocket, rawData) <= 0) {
         closesocket(clientSocket); 
         return;
     }
@@ -67,24 +63,13 @@ void handleClient(SOCKET clientSocket) {
         return;
     }
 
-    // isBlocked is now FOUND because of #include "Filter.h"
     if (isBlocked(req.host)) {
-        {
-            std::lock_guard<std::mutex> lock(coutMtx);
-            std::cout << "[BLOCKED] " << req.host << std::endl;
-        }
         sendAll(clientSocket, HTTP_403.c_str(), (int)HTTP_403.length());
         logProxy(ipStr, req.host, req.port, req.method, req.path, "BLOCKED", 0);
         closesocket(clientSocket);
         return;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(coutMtx);
-        std::cout << "[FORWARD] " << req.method << " " << req.host << std::endl;
-    }
-
-    // Fixed the string/int mismatch here
     SOCKET remoteSocket = connectToRemote(req.host, req.port);
     if (remoteSocket == INVALID_SOCKET) {
         std::string err = "HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n";
@@ -94,7 +79,6 @@ void handleClient(SOCKET clientSocket) {
     }
 
     setSocketTimeout(remoteSocket, 10000); 
-
     std::string finalRequest = modifyRequestLine(req); 
     sendAll(remoteSocket, finalRequest.c_str(), (int)finalRequest.length());
 
@@ -106,11 +90,6 @@ void handleClient(SOCKET clientSocket) {
     }
 
     logProxy(ipStr, req.host, req.port, req.method, req.path, "ALLOWED", totalBytes);
-
-    {
-        std::lock_guard<std::mutex> lock(coutMtx);
-        std::cout << "[DONE] " << req.host << " (" << totalBytes << " bytes)" << std::endl;
-    }
 
     closesocket(remoteSocket);
     closesocket(clientSocket);

@@ -16,6 +16,9 @@
     <ClCompile Include="F:\IIT\network-proxy\src\ProxyCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="F:\IIT\network-proxy\src\Config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="F:\IIT\network-proxy\CMakeLists.txt" />

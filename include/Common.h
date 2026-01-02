@@ -8,11 +8,10 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-// This struct must be defined BEFORE the Parser and Proxy use it
 struct HttpRequest {
     std::string method;
     std::string host;
-    std::string port = "80"; // Port is a string
+    std::string port = "80"; 
     std::string path;
     std::string version;
     std::string raw;
