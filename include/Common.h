@@ -1,0 +1,23 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <string>
+#include <vector>
+
+#pragma comment(lib, "ws2_32.lib")
+
+// This struct must be defined BEFORE the Parser and Proxy use it
+struct HttpRequest {
+    std::string method;
+    std::string host;
+    std::string port = "80"; // Port is a string
+    std::string path;
+    std::string version;
+    std::string raw;
+};
+
+const std::string HTTP_403 = "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nAccess Denied: Domain is blocked.";
+
+#endif

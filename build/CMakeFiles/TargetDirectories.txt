@@ -1,0 +1,3 @@
+F:/IIT/network-proxy/build/CMakeFiles/proxy_exe.dir
+F:/IIT/network-proxy/build/CMakeFiles/ALL_BUILD.dir
+F:/IIT/network-proxy/build/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,22 @@
+# Visual Studio temporary files
+.vs/
+[Bb]in/
+[Oo]bj/
+*.swp
+*.lock
+*.ipch
+*.aps
+*.intermediate.manifest
+
+# Compiled Executables
+*.exe
+*.pdb
+*.ilk
+
+# User-specific files
+*.user
+*.userosscache
+*.sln.docstates
+
+# Project Logs
+proxy.log
