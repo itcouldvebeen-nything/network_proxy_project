@@ -218,14 +218,6 @@ Contributions are welcome! When contributing:
 
 For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (if available).
 
-## License
-
-See [LICENSE](LICENSE) file for license information (if available).
-
-## Maintainers
-
-This project is maintained by the development team. For questions or support, please open an issue on the repository.
-
 ---
 
 **Note**: This proxy server is designed for educational and development purposes. Use responsibly and in accordance with applicable laws and regulations.
