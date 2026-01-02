@@ -1,31 +1,69 @@
 # Network Proxy Server
 
+[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](CMakeLists.txt)
+[![C++ Standard](https://img.shields.io/badge/C++-17-orange.svg)](CMakeLists.txt)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](CMakeLists.txt)
+[![CMake](https://img.shields.io/badge/CMake-3.10+-green.svg)](CMakeLists.txt)
+
 A lightweight, multi-threaded HTTP proxy server written in C++ for Windows. This proxy server forwards HTTP requests from clients to remote servers while providing domain filtering capabilities and comprehensive request logging.
 
-## Features
+## Table of Contents
 
-- **HTTP Proxy Server**: Forwards HTTP requests between clients and remote servers
-- **Domain Filtering**: Blocks requests to specified domains using a configurable blocklist
-- **Request Logging**: Logs all proxy activity to console and file (`proxy.log`)
-- **Multi-threaded**: Handles multiple concurrent client connections efficiently
-- **Thread-safe**: Uses mutexes to ensure safe concurrent access to shared resources
-- **Graceful Shutdown**: Supports Ctrl+C for clean server termination
+- [What the Project Does](#what-the-project-does)
+- [Why the Project is Useful](#why-the-project-is-useful)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Usage Examples](#usage-examples)
+- [Project Structure](#project-structure)
+- [How It Works](#how-it-works)
+- [Documentation](#documentation)
+- [Getting Help](#getting-help)
+- [Contributing](#contributing)
+- [Limitations](#limitations)
 
-## Why This Project is Useful
+## What the Project Does
+
+The Network Proxy Server is an HTTP proxy that:
+
+- **Intercepts HTTP requests** from client applications
+- **Parses and validates** incoming HTTP requests
+- **Filters domains** based on a configurable blocklist
+- **Forwards allowed requests** to remote servers
+- **Streams responses** back to clients
+- **Logs all activity** to console and file for monitoring and analysis
+
+The proxy uses a **thread-per-connection** architecture, handling multiple concurrent client connections efficiently with thread-safe operations.
+
+## Why the Project is Useful
 
 This proxy server is useful for:
 
 - **Network Monitoring**: Track and log all HTTP traffic passing through the proxy
-- **Content Filtering**: Block access to specific domains or websites
-- **Educational Purposes**: Learn about network programming, socket programming, and HTTP protocol handling
-- **Development Testing**: Test applications with proxy configurations
-- **Traffic Analysis**: Analyze HTTP request patterns and behaviors
+- **Content Filtering**: Block access to specific domains or websites (e.g., ads, trackers, malicious sites)
+- **Educational Purposes**: Learn about network programming, socket programming, HTTP protocol handling, and concurrent systems
+- **Development Testing**: Test applications with proxy configurations and analyze request/response patterns
+- **Traffic Analysis**: Analyze HTTP request patterns, methods, and behaviors in your network
+
+## Features
+
+- ✅ **HTTP Proxy Server**: Full HTTP request/response forwarding
+- ✅ **HTTPS Tunneling**: CONNECT method support for HTTPS traffic tunneling
+- ✅ **Domain Filtering**: Configurable blocklist with subdomain matching support
+- ✅ **Request Logging**: Comprehensive logging to console and CSV file
+- ✅ **Multi-threaded**: Thread-per-connection model for concurrent request handling
+- ✅ **Thread-safe**: Mutex-based synchronization for shared resources
+- ✅ **Configurable**: Port, blocklist path, and log path via configuration file
+- ✅ **Graceful Shutdown**: Clean termination with Ctrl+C signal handling
+- ✅ **Error Handling**: Proper error responses (403 Forbidden, 502 Bad Gateway)
 
 ## Prerequisites
 
 - **Windows** (uses WinSock2 API)
 - **CMake** 3.10 or higher
-- **C++ Compiler** with C++11 support (Visual Studio recommended)
+- **C++ Compiler** with C++17 support (Visual Studio 2017+ recommended)
 - **Build Tools**: Visual Studio or MinGW with CMake support
 
 ## Installation
@@ -54,171 +92,269 @@ This proxy server is useful for:
    cmake --build . --config Release
    ```
 
-   Or use Visual Studio:
-   ```bash
-   cmake --build . --config Release
-   ```
+   The executable will be located at `build/Release/proxy_exe.exe`
 
-5. **The executable** will be located at `build/Release/proxy_exe.exe`
+### Quick Build (Visual Studio)
+
+If you have Visual Studio installed, you can also open the generated solution:
+
+```bash
+cmake ..
+cmake --open .
+```
+
+Then build the `proxy_exe` project in Visual Studio.
 
 ## Getting Started
 
-### Basic Usage
+### 1. Prepare Configuration Files
 
-1. **Create a blocklist file** (optional):
-   Create a file named `blocked.txt` in the same directory as the executable with one domain per line:
-   ```
-   example.com
-   www.example.com
-   badsite.org
-   doubleclick.net
-   ```
+Create a `config` directory in your build output directory (or where you'll run the executable):
 
-2. **Run the proxy server**:
-   ```bash
-   ./build/Release/proxy_exe.exe
-   ```
-
-   The server will start listening on port **8888**:
-   ```
-   ============================================
-     PROXY SERVER STARTING ON PORT 8888        
-     Press Ctrl+C to stop                      
-   ============================================
-   ```
-
-3. **Configure your application** to use the proxy:
-   - Proxy address: `localhost` or `127.0.0.1`
-   - Proxy port: `8888`
-
-### Example: Using curl with the Proxy
-
-```bash
-curl -x http://localhost:8888 http://www.google.com
+```
+config/
+├── server.cfg
+└── blocked.txt
 ```
 
-### Example: Testing Concurrent Requests
+**`config/server.cfg`** (optional - defaults will be used if missing):
+```ini
+PORT=8888
+FILTER_PATH=config/blocked.txt
+LOG_PATH=logs/proxy.log
+MAX_HEADER_SIZE=8192
+```
 
-A test script is provided (`test_proxy.bat`) that sends 20 concurrent requests:
+**`config/blocked.txt`** (one domain per line):
+```
+example.com
+www.example.com
+badsite.org
+doubleclick.net
+ads.tracker.com
+```
+
+### 2. Run the Proxy Server
+
+```bash
+./build/Release/proxy_exe.exe
+```
+
+You should see:
+```
+============================================================
+         CUSTOM NETWORK PROXY SERVER v1.0
+============================================================
+ [SYSTEM] Winsock Initialized ... OK
+ [FS]     Log directory found ... OK
+ [CONFIG] Port: 8888
+ [FILTER] Logic operational.
+ [STATUS] Proxy is listening on 0.0.0.0:8888
+------------------------------------------------------------
+ [READY]  Waiting for client connections...
+ [HINT]   Press Ctrl+C to terminate the server.
+============================================================
+```
+
+### 3. Configure Your Application
+
+Configure your HTTP client to use the proxy:
+- **Proxy address**: `localhost` or `127.0.0.1`
+- **Proxy port**: `8888`
+
+## Configuration
+
+The proxy server reads configuration from `config/server.cfg` (relative to the executable's working directory):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `PORT` | `8888` | Port number the proxy listens on |
+| `FILTER_PATH` | `config/blocked.txt` | Path to domain blocklist file |
+| `LOG_PATH` | `logs/proxy.log` | Path to log file |
+| `MAX_HEADER_SIZE` | `8192` | Maximum HTTP header size in bytes |
+
+If the configuration file is missing, the proxy will use defaults and print a warning.
+
+## Usage Examples
+
+### Using curl
+
+```bash
+# Basic HTTP request through proxy
+curl -x http://localhost:8888 http://www.google.com
+
+# HTTPS request (uses CONNECT method for tunneling)
+curl -x http://localhost:8888 https://www.google.com
+
+# Check if a domain is blocked
+curl -x http://localhost:8888 http://example.com
+# Returns: HTTP/1.1 403 Forbidden
+```
+
+### Using PowerShell
+
+```powershell
+# Configure proxy for web requests
+$proxy = "http://localhost:8888"
+$env:HTTP_PROXY = $proxy
+$env:HTTPS_PROXY = $proxy
+
+# Make a request
+Invoke-WebRequest -Uri "http://www.example.com"
+```
+
+### Testing with the Provided Script
+
+A test script is included (`test_proxy.bat`) that performs multiple test scenarios:
+
 ```bash
 test_proxy.bat
 ```
 
-### Configuration
-
-- **Port**: The proxy listens on port `8888` by default. To change this, modify `src/main.cpp` line 39.
-- **Blocklist**: The proxy loads domains from `blocked.txt` in the current working directory. Create this file to block specific domains.
-- **Timeouts**: 
-  - Client socket timeout: 7 seconds (line 47 in `src/ProxyCore.cpp`)
-  - Remote socket timeout: 10 seconds (line 96 in `src/ProxyCore.cpp`)
+This script tests:
+- HTTP GET forwarding
+- Domain filtering
+- Malformed request handling
+- Concurrent request handling
 
 ## Project Structure
 
 ```
 network-proxy/
-├── src/              # Source files
-│   ├── main.cpp      # Entry point and server initialization
-│   ├── ProxyCore.cpp # Core proxy logic and client handling
-│   ├── Parser.cpp    # HTTP request parsing
-│   ├── Filter.cpp    # Domain filtering logic
-│   └── Logger.cpp    # Request logging
-├── include/          # Header files
-│   ├── Common.h      # Common definitions and structures
-│   ├── ProxyCore.h   # Proxy core declarations
-│   ├── Parser.h      # Parser declarations
-│   ├── Filter.h      # Filter declarations
-│   └── Logger.h      # Logger declarations
-├── build/            # Build output directory
-├── config/           # Configuration files directory
-├── docs/             # Documentation directory
-├── CMakeLists.txt    # CMake build configuration
-└── test_proxy.bat    # Test script for concurrent requests
+├── src/                  # Source files
+│   ├── main.cpp         # Entry point and server initialization
+│   ├── ProxyCore.cpp    # Core proxy logic and client handling
+│   ├── Parser.cpp       # HTTP request parsing
+│   ├── Filter.cpp       # Domain filtering logic
+│   ├── Logger.cpp       # Request logging
+│   └── Config.cpp       # Configuration file parsing
+├── include/             # Header files
+│   ├── Common.h         # Common definitions and structures
+│   ├── ProxyCore.h      # Proxy core declarations
+│   ├── Parser.h         # Parser declarations
+│   ├── Filter.h         # Filter declarations
+│   ├── Logger.h         # Logger declarations
+│   └── Config.h         # Configuration class
+├── config/              # Configuration files (create this)
+│   ├── server.cfg       # Server configuration
+│   └── blocked.txt      # Domain blocklist
+├── docs/                # Documentation
+│   └── design.md        # System design and architecture
+├── logs/                # Log files (auto-created)
+├── build/               # Build output directory
+├── CMakeLists.txt       # CMake build configuration
+├── test_proxy.bat       # Test script
+└── README.md            # This file
 ```
 
 ## How It Works
 
-1. **Server Initialization**: The server creates a listening socket on port 8888 and loads the domain blocklist from `blocked.txt`.
+The proxy follows a **layered request-handling architecture**:
 
-2. **Client Connection**: When a client connects, a new thread is spawned to handle the request.
+1. **Connection Acceptance**: The server listens on the configured port and accepts incoming client connections
+2. **Thread Spawning**: Each connection spawns a new detached thread for concurrent handling
+3. **Request Parsing**: HTTP headers are parsed to extract method, host, port, and path
+4. **Domain Filtering**: The requested hostname is checked against the blocklist (exact and subdomain matching)
+5. **Protocol Dispatch**: Based on the HTTP method:
+   - **CONNECT method (HTTPS)**: Establishes a bidirectional tunnel between client and remote server
+   - **Standard HTTP methods**: Forwards the request with modified headers
+6. **Request Forwarding**: If allowed, the proxy:
+   - Establishes a TCP connection to the remote server
+   - For CONNECT: Creates bidirectional relay (two threads for client↔remote data flow)
+   - For HTTP: Modifies the request (adds `Connection: close` header) and streams response
+7. **Logging**: All requests are logged with metadata (IP, host, method, status, bytes)
 
-3. **Request Parsing**: The proxy parses the HTTP request to extract:
-   - HTTP method (GET, POST, etc.)
-   - Target host and port
-   - Request path
-   - HTTP version
+For detailed architecture information, see [docs/design.md](docs/design.md).
 
-4. **Domain Filtering**: The proxy checks if the requested host is in the blocklist. If blocked, it returns a 403 Forbidden response.
-
-5. **Request Forwarding**: If allowed, the proxy:
-   - Establishes a connection to the remote server
-   - Modifies the request (adds `Connection: close` header)
-   - Forwards the request to the remote server
-   - Relays the response back to the client
-
-6. **Logging**: All requests are logged to both console and `proxy.log` file with details including:
-   - Client IP address
-   - Requested host and port
-   - HTTP method and path
-   - Status (ALLOWED/BLOCKED)
-   - Bytes transferred
-
-## Logging
+### Logging
 
 The proxy logs all requests in two places:
 
-1. **Console Output**: Real-time logging with status messages:
-   - `[FORWARD]` - Request being forwarded
-   - `[BLOCKED]` - Request blocked by filter
-   - `[DONE]` - Request completed
+**Console Output** (real-time):
+```
+[FORWARD] 127.0.0.1 -> www.google.com:80 GET /
+[DONE]    127.0.0.1 -> www.google.com:80 (12345 bytes)
+[BLOCKED] 127.0.0.1 -> example.com:80 GET /
+```
 
-2. **File Logging**: Detailed logs written to `proxy.log` in CSV format:
-   ```
-   IP,Host,Port,Method,Status,Bytes
-   127.0.0.1,www.google.com,80,GET,ALLOWED,12345
-   ```
+**File Logging** (`logs/proxy.log` - CSV format):
+```csv
+IP,Host,Port,Method,Path,Status,Bytes
+127.0.0.1,www.google.com,80,GET,/,ALLOWED,12345
+127.0.0.1,example.com,80,GET,/,BLOCKED,0
+```
 
-## Limitations
+## Documentation
 
-- **Windows Only**: Uses WinSock2 API, not cross-platform
-- **HTTP Only**: Does not support HTTPS/SSL tunneling
-- **No Authentication**: No proxy authentication support
-- **No Caching**: Does not cache responses
-- **Connection: close**: Forces connection closure (no keep-alive)
-
-## Troubleshooting
-
-### Port Already in Use
-If you see "Bind failed. Is port 8888 already in use?", either:
-- Stop the process using port 8888
-- Change the port in `src/main.cpp`
-
-### Blocked Domains Not Working
-- Ensure `blocked.txt` exists in the same directory as the executable
-- Check that domains are listed one per line
-- Verify the file is readable (no permission issues)
-
-### No Logs Appearing
-- Check that the executable has write permissions in the current directory
-- Verify `proxy.log` is not locked by another process
+- **[System Design Document](docs/design.md)**: Comprehensive architecture documentation including:
+  - Component responsibilities and interactions
+  - Concurrency model and thread safety
+  - Data flow and request lifecycle
+  - Error handling strategies
+  - Performance characteristics and limitations
+  - Security considerations
 
 ## Getting Help
 
 - **Issues**: Open an issue on the repository for bug reports or feature requests
-- **Documentation**: Check the `docs/` directory for additional documentation (if available)
+- **Documentation**: Check [docs/design.md](docs/design.md) for detailed architecture and implementation details
 - **Code Review**: Review the source code in `src/` and `include/` directories for implementation details
+
+### Common Issues
+
+**Port already in use:**
+- Stop the process using port 8888, or change the port in `config/server.cfg`
+
+**Blocked domains not working:**
+- Ensure `config/blocked.txt` exists and is readable
+- Verify domains are listed one per line
+- Check that the `FILTER_PATH` in `server.cfg` is correct
+
+**No logs appearing:**
+- Check that the executable has write permissions in the current directory
+- Verify `logs/` directory exists or can be created
+- Ensure `proxy.log` is not locked by another process
 
 ## Contributing
 
-Contributions are welcome! When contributing:
+Contributions are welcome! This project follows standard open source contribution practices.
 
-1. Follow the existing code style and structure
-2. Ensure thread-safety when modifying shared resources
-3. Test your changes with multiple concurrent connections
-4. Update relevant documentation
+### How to Contribute
 
-For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (if available).
+1. **Fork the repository** and create a feature branch
+2. **Follow the existing code style** and structure
+3. **Ensure thread-safety** when modifying shared resources
+4. **Test your changes** with multiple concurrent connections
+5. **Update relevant documentation** (README, design docs)
+6. **Submit a pull request** with a clear description of changes
+
+### Development Guidelines
+
+- Use C++17 standard features
+- Maintain thread-safety with mutexes for shared resources
+- Follow the existing naming conventions
+- Add appropriate error handling
+- Update `docs/design.md` if architecture changes
+- Test with the provided `test_proxy.bat` script
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) if available, or open an issue to discuss major changes.
+
+### Who Maintains This Project
+
+This project is maintained by the open source community. For questions, bug reports, or feature requests, please open an issue on the repository.
+
+## Limitations
+
+- **Windows Only**: Uses WinSock2 API, not cross-platform
+- **HTTPS Inspection**: While CONNECT method supports HTTPS tunneling, the proxy cannot inspect or modify encrypted traffic
+- **No Authentication**: No proxy authentication support (suitable for trusted networks only)
+- **No Caching**: Does not cache responses
+- **Connection: close**: Forces connection closure (no HTTP keep-alive)
+- **No Request Body Handling**: Parser only processes headers (POST/PUT bodies may be affected)
+- **Scalability**: Thread-per-connection model limits concurrent connections (~500-1000 on typical hardware)
+
+For a complete list of limitations and known issues, see [docs/design.md](docs/design.md#known-system-limitations).
 
 ---
 
 **Note**: This proxy server is designed for educational and development purposes. Use responsibly and in accordance with applicable laws and regulations.
-

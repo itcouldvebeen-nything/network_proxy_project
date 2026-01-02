@@ -1,11 +1,24 @@
+/**
+ * @file ProxyCore.cpp
+ * @brief Core implementation of the proxy forwarding logic and HTTPS tunneling.
+ */
+
 #include "../include/ProxyCore.h"
 #include "../include/Parser.h"
 #include "../include/Filter.h"
 #include "../include/Logger.h"
 #include <iostream>
-#include <mutex>
+#include <thread>
 
-std::mutex coutMtx; 
+
+void relay(SOCKET src, SOCKET dst) {
+    char buffer[32768]; 
+    int n;
+    while ((n = recv(src, buffer, sizeof(buffer), 0)) > 0) {
+        if (send(dst, buffer, n, 0) <= 0) break;
+    }
+    shutdown(dst, SD_SEND); 
+}
 
 int sendAll(SOCKET s, const char* buf, int len) {
     int totalSent = 0;
@@ -41,9 +54,9 @@ void setSocketTimeout(SOCKET s, int milliseconds) {
     setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 }
 
-void handleClient(SOCKET clientSocket) {
-    setSocketTimeout(clientSocket, 7000); 
 
+void handleClient(SOCKET clientSocket) {
+    setSocketTimeout(clientSocket, 10000); 
     sockaddr_in clientAddr;
     int addrLen = sizeof(clientAddr);
     char ipStr[INET_ADDRSTRLEN] = "Unknown";
@@ -72,24 +85,32 @@ void handleClient(SOCKET clientSocket) {
 
     SOCKET remoteSocket = connectToRemote(req.host, req.port);
     if (remoteSocket == INVALID_SOCKET) {
-        std::string err = "HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n";
-        sendAll(clientSocket, err.c_str(), (int)err.length());
+        sendAll(clientSocket, HTTP_502.c_str(), (int)HTTP_502.length());
+        logProxy(ipStr, req.host, req.port, req.method, req.path, "ERR_CONN", 0);
         closesocket(clientSocket); 
         return;
     }
+    setSocketTimeout(remoteSocket, 15000); 
 
-    setSocketTimeout(remoteSocket, 10000); 
-    std::string finalRequest = modifyRequestLine(req); 
-    sendAll(remoteSocket, finalRequest.c_str(), (int)finalRequest.length());
+    if (req.method == "CONNECT") {
+        if (sendAll(clientSocket, HTTP_200_CON.c_str(), (int)HTTP_200_CON.length()) != SOCKET_ERROR) {
+            logProxy(ipStr, req.host, req.port, "CONNECT", "-", "TUNNEL", 0);
+            
+            std::thread(relay, clientSocket, remoteSocket).detach();
+            relay(remoteSocket, clientSocket);
+        }
+    } else {
+        std::string finalRequest = modifyRequestLine(req); 
+        sendAll(remoteSocket, finalRequest.c_str(), (int)finalRequest.length());
 
-    char buffer[16384];
-    int n, totalBytes = 0;
-    while ((n = recv(remoteSocket, buffer, sizeof(buffer), 0)) > 0) {
-        if (sendAll(clientSocket, buffer, n) == SOCKET_ERROR) break;
-        totalBytes += n;
+        char buffer[32768];
+        int n, totalBytes = 0;
+        while ((n = recv(remoteSocket, buffer, sizeof(buffer), 0)) > 0) {
+            if (sendAll(clientSocket, buffer, n) == SOCKET_ERROR) break;
+            totalBytes += n;
+        }
+        logProxy(ipStr, req.host, req.port, req.method, req.path, "ALLOWED", totalBytes);
     }
-
-    logProxy(ipStr, req.host, req.port, req.method, req.path, "ALLOWED", totalBytes);
 
     closesocket(remoteSocket);
     closesocket(clientSocket);
