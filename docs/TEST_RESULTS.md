@@ -21,19 +21,6 @@ The proxy server generates a synchronized, thread-safe audit trail in a CSV-comp
 ## 3. Captured Test Logs
 The following data was captured during the execution of the automated test suite. It demonstrates successful HTTP forwarding, HTTPS tunneling, domain filtering, and handling of concurrent requests.
 
-```csv
-2026-01-02 22:35:02,127.0.0.1,[www.google.com](https://www.google.com),GET,ALLOWED,21373
-2026-01-02 22:35:14,127.0.0.1,www.wikipedia.org,CONNECT,TUNNEL,0
-2026-01-02 22:35:15,127.0.0.1,example.com,HEAD,BLOCKED,0
-2026-01-02 22:35:18,127.0.0.1,[www.bing.com](https://www.bing.com),GET,BLOCKED,0
-2026-01-02 22:35:29,127.0.0.1,[www.google.com](https://www.google.com),HEAD,ALLOWED,1066
-2026-01-02 22:37:59,127.0.0.1,[www.google.com](https://www.google.com),GET,ALLOWED,21333
-2026-01-02 23:03:10,127.0.0.1,neverssl.com,HEAD,ALLOWED,300
-2026-01-02 23:04:52,127.0.0.1,api.github.com,CONNECT,TUNNEL,0
-2026-01-02 23:05:15,127.0.0.1,bing.com,CONNECT,BLOCKED,0
-2026-01-02 23:05:40,127.0.0.1,api2.cursor.sh,CONNECT,TUNNEL,0
-2026-01-02 23:05:43,127.0.0.1,www.google.com,CONNECT,TUNNEL,0
-
 ## Screenshot A: System Integration
 **Description:** Evidence that the Windows Operating System is successfully routing network traffic through the custom C++ Proxy Server.
 
@@ -55,3 +42,17 @@ The following data was captured during the execution of the automated test suite
 
 ![HTTPS Tunneling](./screenshot_c.png)
 *Note: The browser successfully loads a secure site (HTTPS) while the console displays multiple 'TUNNEL' status entries.*
+
+```csv
+2026-01-02 22:35:02,127.0.0.1,[www.google.com](https://www.google.com),GET,ALLOWED,21373
+2026-01-02 22:35:14,127.0.0.1,www.wikipedia.org,CONNECT,TUNNEL,0
+2026-01-02 22:35:15,127.0.0.1,example.com,HEAD,BLOCKED,0
+2026-01-02 22:35:18,127.0.0.1,[www.bing.com](https://www.bing.com),GET,BLOCKED,0
+2026-01-02 22:35:29,127.0.0.1,[www.google.com](https://www.google.com),HEAD,ALLOWED,1066
+2026-01-02 22:37:59,127.0.0.1,[www.google.com](https://www.google.com),GET,ALLOWED,21333
+2026-01-02 23:03:10,127.0.0.1,neverssl.com,HEAD,ALLOWED,300
+2026-01-02 23:04:52,127.0.0.1,api.github.com,CONNECT,TUNNEL,0
+2026-01-02 23:05:15,127.0.0.1,bing.com,CONNECT,BLOCKED,0
+2026-01-02 23:05:40,127.0.0.1,api2.cursor.sh,CONNECT,TUNNEL,0
+2026-01-02 23:05:43,127.0.0.1,www.google.com,CONNECT,TUNNEL,0
+
