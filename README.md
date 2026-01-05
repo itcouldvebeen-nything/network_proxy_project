@@ -72,7 +72,7 @@ This proxy server is useful for:
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/itcouldvebeen-nything/network_proxy_project
    cd network-proxy
    ```
 
@@ -336,12 +336,6 @@ Contributions are welcome! This project follows standard open source contributio
 - Add appropriate error handling
 - Update `docs/design.md` if architecture changes
 - Test with the provided `test_proxy.bat` script
-
-For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) if available, or open an issue to discuss major changes.
-
-### Who Maintains This Project
-
-This project is maintained by the open source community. For questions, bug reports, or feature requests, please open an issue on the repository.
 
 ## Limitations
 
